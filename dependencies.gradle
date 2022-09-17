@@ -1,0 +1,9 @@
+// Add your dependencies here
+
+dependencies {
+
+    compileOnly("org.projectlombok:lombok:1.18.22") {
+        transitive = false
+    }
+    annotationProcessor("org.projectlombok:lombok:1.18.22")
+}
