@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Mod(modid = Tags.MODID,
      version = Tags.VERSION,
@@ -118,35 +119,34 @@ public class CartLoad {
         if (ticket == null) {
             ticket = ForgeChunkManager.requestTicket(instance, minecart.worldObj, ForgeChunkManager.Type.ENTITY);
             ticket.bindEntity(minecart);
-            ticket.setChunkListDepth(2);
+            ticket.setChunkListDepth(3);
             cartTickets.put(minecart, ticket);
         }
         val CX = Math.floorDiv((int) minecart.posX, 16);
         val CZ = Math.floorDiv((int) minecart.posZ, 16);
         val req = ticket.getChunkList();
-        val current = new ChunkCoordIntPair(CX, CZ);
-        if (!req.contains(current)) {
-            ForgeChunkManager.forceChunk(ticket, current);
-        }
-        ForgeChunkManager.reorderChunk(ticket, current);
+        loadFront(req, ticket, new ChunkCoordIntPair(CX, CZ));
         val cX = (minecart.posX % 16 + 16) % 16;
         val cZ = (minecart.posZ % 16 + 16) % 16;
-        ChunkCoordIntPair next = null;
         if (cX < 2) {
-            next = new ChunkCoordIntPair(CX - 1, CZ);
+            loadFront(req, ticket, new ChunkCoordIntPair(CX - 1, CZ));
         } else if (cX > 14) {
-            next = new ChunkCoordIntPair(CX + 1, CZ);
-        } else if (cZ < 2) {
-            next = new ChunkCoordIntPair(CX, CZ - 1);
-        } else if (cZ > 14) {
-            next = new ChunkCoordIntPair(CX, CZ + 1);
+            loadFront(req, ticket, new ChunkCoordIntPair(CX + 1, CZ));
         }
-        if (next == null) {
+        if (cZ < 2) {
+            loadFront(req, ticket, new ChunkCoordIntPair(CX, CZ - 1));
+        } else if (cZ > 14) {
+            loadFront(req, ticket, new ChunkCoordIntPair(CX, CZ + 1));
+        }
+    }
+    private static void loadFront(Set<ChunkCoordIntPair> req, ForgeChunkManager.Ticket ticket, ChunkCoordIntPair pos) {
+        if (ticket == null || pos == null) {
             return;
         }
-        if (!req.contains(next)) {
-            ForgeChunkManager.forceChunk(ticket, next);
+        if (!req.contains(pos)) {
+            ForgeChunkManager.forceChunk(ticket, pos);
+        } else {
+            ForgeChunkManager.reorderChunk(ticket, pos);
         }
-        ForgeChunkManager.reorderChunk(ticket, next);
     }
 }
