@@ -28,6 +28,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.relauncher.Side;
 
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import lombok.val;
 import lombok.var;
 
@@ -50,7 +52,9 @@ import java.util.Set;
      acceptableRemoteVersions = "*")
 public class CartLoad {
     public static final double SPEED_EPSILON = 0.0001;
+    public static final int STATIONARY_TIMEOUT = 100;
     private static final Map<EntityMinecart, ForgeChunkManager.Ticket> cartTickets = new HashMap<>();
+    private static final TObjectIntMap<EntityMinecart> timers = new TObjectIntHashMap<>();
     private static CartLoad instance;
     private int cleanupCounter = 0;
 
@@ -111,10 +115,18 @@ public class CartLoad {
         double speed = Math.abs(minecart.motionX) + Math.abs(minecart.motionY) + Math.abs(minecart.motionZ);
         if (speed < SPEED_EPSILON) {
             if (ticket != null) {
-                ForgeChunkManager.releaseTicket(ticket);
-                cartTickets.remove(minecart);
+                int time = timers.get(minecart) + 1;
+                if (time >= STATIONARY_TIMEOUT) {
+                    ForgeChunkManager.releaseTicket(ticket);
+                    cartTickets.remove(minecart);
+                    timers.remove(minecart);
+                } else {
+                    timers.put(minecart, time);
+                }
             }
             return;
+        } else {
+            timers.remove(minecart);
         }
         if (ticket == null) {
             ticket = ForgeChunkManager.requestTicket(instance, minecart.worldObj, ForgeChunkManager.Type.ENTITY);
@@ -130,12 +142,12 @@ public class CartLoad {
         val cZ = (minecart.posZ % 16 + 16) % 16;
         if (cX < 2) {
             loadFront(req, ticket, new ChunkCoordIntPair(CX - 1, CZ));
-        } else if (cX > 14) {
+        } else if (cX > 13) {
             loadFront(req, ticket, new ChunkCoordIntPair(CX + 1, CZ));
         }
         if (cZ < 2) {
             loadFront(req, ticket, new ChunkCoordIntPair(CX, CZ - 1));
-        } else if (cZ > 14) {
+        } else if (cZ > 13) {
             loadFront(req, ticket, new ChunkCoordIntPair(CX, CZ + 1));
         }
     }
